@@ -13,6 +13,7 @@
 <script>
 import axios from 'axios'
 const crypto = require('crypto')
+const oauth = require('oauth')
 
 export default {
   layout: 'empty',
@@ -21,8 +22,16 @@ export default {
       token: {}
     }
   },
-  mounted() {
-    this.ready()
+  async mounted() {
+    // const res2 = await this.$API.twitterUrl({})
+    // const step1 = (await axios({
+    //   method: 'get',
+    //   url: 'https://twitter.com/oauth/request_token?oauth_consumer_key=psCq7zJc8a9UyNOX5etVSuKVh&oauth_nonce=3h4p6ebn5ask&oauth_signature_method=HMAC-SHA1&oauth_version=1.0&oauth_signature=kIBLltY7zcRxMnYaeeDkiBEJliU%3Doauth_timestamp=1582271893'
+    // })).data
+    // console.log(step1)
+    // console.log(res2)
+    // this.ready()
+    this.oauthlogin()
   },
   methods: {
     randomString(len) {
@@ -35,12 +44,33 @@ export default {
       }
       return pwd
     },
+    async oauthlogin(){
+      console.log( process.env.VUE_APP_URL + '/login/twitter_logined')
+      var _twitterConsumerKey = 'LdQ6moi0sfGzsPBtVMxjPhbeq'
+      var _twitterConsumerSecret = '98txEZ4xf6Y2bNxgEDRRJ02Jyipn0Lq1xazQMyYyCmJNwdO04t'
+      var consumer = new oauth.OAuth(
+        'https://twitter.com/oauth/request_token', 'https://twitter.com/oauth/access_token', 
+        _twitterConsumerKey, _twitterConsumerSecret, '1.0A', 'https://test.smartsignature.io/login/twitter_logined/', 'HMAC-SHA1')
+        consumer.getOAuthRequestToken(function(error, oauthToken, oauthTokenSecret, results){
+        if (error) {
+          console.log(error)
+          // res.send('Error getting OAuth request token : ' + util.inspect(error), 500)
+        } else {  
+          // req.session.oauthRequestToken = oauthToken
+          // req.session.oauthRequestTokenSecret = oauthTokenSecret
+          console.log('https://twitter.com/oauth/authorize?oauth_token=' + oauthRequestToken)
+          // res.redirect('https://twitter.com/oauth/authorize?oauth_token='+req.session.oauthRequestToken)  
+        }
+      })
+    },
     async ready() {
       const timestamp = parseInt(Date.parse(new Date())) / 1000
       const ranstr = this.randomString(12)
-      const httpmethod = 'GET'
-      const twitterurl = 'http://api.twitter.com/oauth/request_token'
-      const params = 'oauth_consumer_key=' + process.env.TWITTER_APP_KEY +
+      const httpmethod = 'POST'
+      const twitterurl = 'https://api.twitter.com/oauth/request_token'
+      const params = 
+      // 'oauth_callback=' + process.env.VUE_APP_URL + '/login/twitter_logined/' +
+      'oauth_consumer_key=' + process.env.TWITTER_APP_KEY +
       '&oauth_nonce=' + ranstr +
       '&oauth_signature_method=' + 'HMAC-SHA1' +
       '&oauth_timestamp=' + timestamp +
@@ -48,28 +78,43 @@ export default {
       const signtext = httpmethod + '&' + encodeURIComponent(twitterurl) + '&' + encodeURIComponent(params)
       const signkey = encodeURIComponent(process.env.TWITTER_APP_KEY) + '&'
       const sign = encodeURIComponent(crypto.createHmac('sha1', signkey).update(signtext).digest().toString('base64'))
-      const requesturl = 'https://twitter.com/oauth/request_token?' +
-      'oauth_consumer_key=' + process.env.TWITTER_APP_KEY +
-      '&oauth_nonce=' + ranstr +
-      '&oauth_signature_method=' + 'HMAC-SHA1' +
-      '&oauth_version=' + '1.0' +
-      '&oauth_signature=' + sign +
-      'oauth_timestamp=' + timestamp
+      console.log(sign)
+      const requesturl = 'https://api.twitter.com/oauth/request_token' // 
+      // const requesturl = 'https://twitter.com/oauth/request_token?' +
+      // 'oauth_consumer_key=' + process.env.TWITTER_APP_KEY +
+      // '&oauth_nonce=' + ranstr +
+      // '&oauth_signature_method=' + 'HMAC-SHA1' +
+      // '&oauth_version=' + '1.0' +
+      // '&oauth_signature=' + sign +
+      // 'oauth_timestamp=' + timestamp
+      console.log(requesturl)
+      console.log(process.env.VUE_APP_URL + '/login/twitter_logined')
+      const Authorization = 'OAuth ' + 'oauth_nonce="' + ranstr + '", ' +
+        // 'oauth_callback="' + encodeURIComponent(process.env.VUE_APP_URL + '/login/twitter_logined/') + '", ' +
+        'oauth_signature_method="HMAC-SHA1", ' +
+        'oauth_consumer_key="' + process.env.TWITTER_APP_KEY + '", ' +
+        'oauth_timestamp="' + timestamp + '", ' +
+        'oauth_signature="' + sign + '", ' +
+        'oauth_version="1.0"'
+      console.log(Authorization)
       try {
         const step1 = (await axios({
-          method: 'get',
-          url: requesturl
-        })).data
+          method: 'post',
+          url: requesturl,
+          headers: {
+            'Authorization': Authorization
+          },
+        }))
+        console.log(step1)
         const token = {}
         const step1arr = step1.split('&')
         for (const index in step1arr) {
           token[step1arr[index].split('=')[0]] = step1arr[index].split('=')[1]
         }
-        console.log(token)
         this.token = token
-        window.location = 'https://api.twitter.com/oauth/authenticate?oauth_token=' + token.oauth_token
+        // window.location = 'https://api.twitter.com/oauth/authenticate?oauth_token=' + token.oauth_token
       } catch (error) {
-        this.$router.go(-1)
+        // this.$router.go(-1)
         console.log(error)
         this.$message.closeAll()
         this.$message.error(error.toString())

@@ -918,6 +918,14 @@ minetokenGetResources(tokenId) {
       data: data
     })
   },
+  // 获取twitter登录url
+  twitterUrl(data) {
+    return request({
+      method: 'GET',
+      url: '/login/twitter_url',
+      data: data
+    })
+  },
   // twitter 登录
   twitterLogin(data) {
     return request({

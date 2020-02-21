@@ -248,7 +248,7 @@ export default {
       this.$router.push({ name: 'login-telegram', query: { from: 'login' } })
     },
     async twitterLogin() {
-      this.$store.commit('setLoginModal', true)
+      this.$store.commit('setLoginModal', false)
       this.$store.commit('setTwitterLoginMode', 'login')
       this.$router.push({ name: 'login-twitter', query: { from: 'login' } })
     },
